@@ -58,3 +58,30 @@
   |											                	|  
   |											                	|  
   
+
+
+AUDIO CONNECTION:
+Audio Connection may be triggered by either the AG or the HF, the Codec Connection and the Synchronous Connection shall always be established by the AG. AG shall initiate a Codec Connection only if the HF has indicated support for the Codec Negotiation feature and has sent at least one AT+BAC on the current service level connection When selecting which codec to use for a codec connection, the AG shall use the information on codecs available in the HF as provided in the most recently received AT+BAC
+
+1. AG shall send a +BCS=<Codec ID> unsolicited response to the HF
+2. HF shall then respond to the incoming unsolicited response with the AT command AT+BCS=<Codec ID>. The ID shall be the same as in the unsolicited response code as long as the ID is supported
+3. The AG shall always respond with OK if the ID received in AT+BCS is the same as the one sent
+
+4. if no AT+BCS is received, but instead an AT+BAC is received after sending +BCS, the procedure shall end but may be restarted by the AG after re-selecting codec ID based on the information in the just received AT+BAC.
+
+After sending the OK response, the AG shall open the Synchronous Connection with
+
+SCO Creation
+
+
+Voice Recognition Activation – 
+HF Initiated
+HF -- AT+BVRA=1 --> AG
+     Audio Setup
+AG Initiated
+HF <-- +BVRA:1 -- AG
+     Audiosetup
+     
+Voice Recognition Deactivation
+HF Initiated AT+BVRA=0
+AG Initiated +BVRA:0
