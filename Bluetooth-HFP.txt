@@ -16,3 +16,45 @@
   B. After the HF has successfully retrieved information about how call hold and multiparty services are supported in the AG using the AT+CHLD command
   C. After the HF has successfully enabled the “Indicator status update” using the AT+CMER command
   
+  Service Level Connection Diagram
+  HF            	                    		AG
+  |												                |
+  |			RFCOMM Created in between			    |
+  |												                |
+  |			AT+BRSF=<HF Features> --->			  |  
+  |			<--- +BRSF <AG Features>			    |
+  |			<--- OK								            |  
+  |												                |  
+  |			AT+BAC=<HF Avail codecs> --->		  |
+  |			<--- OK								            |
+  |												                |
+  |			AT+CIND=? --->						        |
+  |			<--- +CIND:..						          |
+  |			<--- OK								            |
+  |												                |
+  |			AT+CIND? --->					          	|
+  |			<--- +CIND:..					          	|
+  |			<--- OK							            	|
+  |											                	|
+  |			AT+CMER --->					          	|
+  |			<--- OK							            	|  
+  |												                |
+  |			AT+CHLD=? --->		        				|
+  |			<--- +CHLD:..			          			|
+  |			<--- OK						            		|
+  |											                	|
+  |			AT+BIND=... --->	        				|
+  |			<--- OK							            	|  
+  |												                | 
+  |			AT+BIND=? --->			        			|
+  |			<--- +BIND:..				          		|  
+  |			<--- OK							            	|  
+  |												                |  
+  |			AT+BIND? --->				           		|  
+  |			<--- +BIND:..			          			|  
+  |			<--- +BIND:..					          	|  
+  |			<--- +BIND:..					          	|  
+  |			<--- OK							            	|  
+  |											                	|  
+  |											                	|  
+  
