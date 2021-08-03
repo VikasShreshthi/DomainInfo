@@ -1,0 +1,18 @@
+1. HFP has two role. Handsfree[HF] and Audiogateway[AG]. 
+2. Service Level Connection
+  a. For creating service level connection RFCOMM Channel should be created between HF and AG.
+  b. Supported features exchange : AT+BRSF=<HF supported features> command to the AG to both notify the AG of the supported features in the HF, as well as to retrieve the supported features in the AG using the +BRSF result code.
+  c. Codec Negotiation : if the HF supports the Codec Negotiation feature, it shall check if the AT+BRSF command response from the AG has indicated that it supports the Codec Negotiation feature. If both the HF and AG do support the Codec Negotiation feature then the HF shall send the AT+BAC=<HF available codecs> command to the AG to notify the AG of the available codecs in the HF.
+  d. HF shall determine which indicators are supported by the AG, as well as the ordering of the supported indicators. he HF uses the AT+CIND=? Test command to retrieve information about the supported indicators and their ordering
+  e. HF has the necessary supported indicator and ordering information, it shall retrieve the current status of the indicators in the AG using the AT+CIND?
+  f. HF shall then enable the "Indicators status update" function in the AG by issuing the AT+CMER command, to which the AG shall respond with OK. As a result, the AG shall send the +CIEV unsolicited result code with the corresponding indicator value whenever a change in service, call, or call setup status occurs
+  g. HF shall issue the AT+CHLD=? test command to retrieve the information about how the call hold and multiparty services are supported in the AG.
+  h. HF shall send the AT+BIND=<HF supported HF indicators> command to the AG to notify the AG of the supported indicators’ assigned numbers in the HF. The AG shall respond with OK.
+  i. HF shall send the AT+BIND=? to request HF indicators supported by the AG. The AG shall reply with the +BIND response listing all HF indicators that it supports followed by an OK
+  j. HF shall send the AT+BIND? command to determine which HF indicators are enabled. The AG shall respond with one or more +BIND responses.
+  
+  SERVICE LEVEL CONNECTION IS COMPLETE CONSIDERED IN ANY BELOW 3 CASES
+  A. After the HF has successfully retrieved information about HF indicators currently enabled by the AG using the AT+BIND? command
+  B. After the HF has successfully retrieved information about how call hold and multiparty services are supported in the AG using the AT+CHLD command
+  C. After the HF has successfully enabled the “Indicator status update” using the AT+CMER command
+  
