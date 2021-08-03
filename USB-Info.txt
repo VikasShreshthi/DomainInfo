@@ -1,0 +1,10 @@
+USB Device states
+  Powered
+  Attached
+  Deafult
+  Addressed
+  Configured
+  Suspended
+
+Enumeration
+
