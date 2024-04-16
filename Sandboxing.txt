@@ -1,0 +1,8 @@
+Sandboxing -
+  Sandboxing is concpet of providing there own space for each application so there is no interfernce in another application for any reason. There are sevral adavantages of doing it one of major advantage is security. 
+  Incase of any applcation is compromised by in system then only that application is compromised and that can not trigger any event or action which can impact entire system.
+  Sandboxing is achived in many layers,
+    DAC
+    MAC
+    Security Policies
+    Abilities
