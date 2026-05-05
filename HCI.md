@@ -510,3 +510,497 @@ Status = Page Timeout
 - Inquiry Scan ≠ Page Scan (both required for full functionality)
 
 ---
+
+# Bluetooth SDP + HFP Connection Flow (IVI ↔ Phone)
+
+## Scenario
+- IVI = Hands-Free (HF) device (client)
+- Phone = Audio Gateway (AG)
+- ACL link is already established and encrypted
+
+---
+
+# 🔍 1. SDP (Service Discovery Protocol)
+
+## Purpose
+IVI discovers:
+- Whether phone supports HFP
+- Which RFCOMM channel to use
+
+---
+
+## SDP Flow
+
+```
+IVI (HF)                               PHONE (AG)
+--------------------------------------------------------
+
+L2CAP Connection (PSM 0x0001)  ----->
+
+SDP ServiceSearchAttributeRequest ----->
+
+                                <----- SDP ServiceSearchAttributeResponse
+                                       (Contains HFP service record)
+
+<----- Extract:
+        - Service Class = Handsfree Audio Gateway
+        - RFCOMM Channel Number (e.g., channel 3)
+```
+
+---
+
+## Key Notes
+
+- SDP runs over **L2CAP (PSM = 0x0001)**
+- IVI searches for:
+  - UUID = HFP Audio Gateway
+- Response includes:
+  - RFCOMM server channel
+  - Supported features
+
+---
+
+# 🔗 2. RFCOMM Connection (Control Channel)
+
+## Purpose
+Create serial-like control channel for AT commands
+
+---
+
+## RFCOMM Flow
+
+```
+IVI (HF)                               PHONE (AG)
+--------------------------------------------------------
+
+L2CAP Connection (PSM 0x0003)  ----->
+
+RFCOMM SABM (Channel X)       ----->
+
+                                <----- RFCOMM UA (Unnumbered Acknowledgement)
+
+RFCOMM DLC Established
+```
+
+---
+
+## Key Notes
+
+- RFCOMM acts like a **virtual serial port**
+- Channel number comes from SDP
+- This channel is used for **AT command exchange**
+
+---
+
+# 🎧 3. HFP Service Level Connection (SLC)
+
+## What is SLC?
+
+👉 **Service Level Connection (SLC)** means:
+
+```
+Control channel is established (RFCOMM)
+AND
+Initial AT command negotiation is completed
+```
+
+👉 No audio yet — only control plane is ready
+
+---
+
+## SLC Establishment Flow (AT Commands)
+
+```
+IVI (HF)                               PHONE (AG)
+--------------------------------------------------------
+
+AT+BRSF=HF_Features        ----->
+
+                                <----- +BRSF=AG_Features
+                                <----- OK
+
+AT+CIND=?                  ----->
+
+                                <----- +CIND: ("service",...),("call",...)
+                                <----- OK
+
+AT+CIND?                   ----->
+
+                                <----- +CIND: current_status
+                                <----- OK
+
+AT+CMER=3,0,0,1            ----->
+
+                                <----- OK
+```
+
+---
+
+## After this:
+
+```
+✔ Service Level Connection (SLC) is established
+✔ HF and AG know each other's capabilities
+✔ Indicator reporting is enabled
+```
+
+---
+
+# 📞 4. What Happens After SLC?
+
+Now system is ready for:
+
+## Incoming Call
+```
+PHONE → IVI:
+RING
++CIEV: call=1
+```
+
+## Outgoing Call
+```
+IVI → PHONE:
+ATD<number>;
+```
+
+---
+
+# 🔊 5. Audio Connection (SCO/eSCO)
+
+👉 Separate from SLC
+
+```
+IVI                                      PHONE
+-----------------------------------------------
+
+HCI_Setup_Synchronous_Connection ----->
+
+<----- HCI_Synchronous_Connection_Complete
+```
+
+---
+
+## Key Point
+
+- **SLC ≠ Audio**
+- SLC = Control plane ready
+- SCO = Audio path
+
+---
+
+# ❗ Important Interview Points
+
+- SDP is mandatory to get RFCOMM channel
+- RFCOMM carries AT commands
+- SLC = RFCOMM + AT negotiation complete
+- Audio (SCO) comes AFTER SLC
+- HFP has two roles:
+  - HF (IVI)
+  - AG (Phone)
+
+---
+
+# 🎯 One-Line Answer
+
+> “SLC in HFP means the RFCOMM control channel is established and the mandatory AT command exchange between HF and AG is completed, enabling call control and status reporting, but not the audio path.”
+
+---
+
+# HFP SCO Connection, Codec Negotiation, In-Band Ringtone & Role Switch
+
+## Scenario
+- IVI = Hands-Free (HF)
+- Phone = Audio Gateway (AG)
+- ACL + RFCOMM + SLC already established
+
+---
+
+# 🔊 1. SCO / eSCO Connection Creation
+
+## Purpose
+Create **audio link** (voice path) separate from control channel
+
+---
+
+## HCI Flow
+
+```
+IVI (HF)                               PHONE (AG)
+--------------------------------------------------------
+
+HCI_Setup_Synchronous_Connection ----->
+
+                                <----- HCI_Synchronous_Connection_Complete
+```
+
+---
+
+## Parameters (Important)
+
+- Connection_Handle (ACL)
+- Packet Type:
+  - HV1 / HV2 / HV3 (SCO)
+  - EV3 / EV5 (eSCO)
+- Bandwidth (TX/RX)
+- Latency
+- Retransmission effort
+
+---
+
+## Key Notes
+
+- SCO = circuit-switched (fixed slots)
+- eSCO = retransmissions allowed (better quality)
+- Audio flows directly between controllers (bypasses host mostly)
+
+---
+
+# 🎧 2. Codec Negotiation (HFP Wideband Speech)
+
+## Why needed?
+To decide:
+- Narrowband (CVSD)
+- Wideband (mSBC)
+
+---
+
+## Happens BEFORE SCO
+
+### Step 1: Feature Exchange (during SLC)
+
+```
+AT+BRSF exchange → both sides advertise codec support
+```
+
+---
+
+### Step 2: Codec Negotiation
+
+```
+IVI (HF)                               PHONE (AG)
+--------------------------------------------------------
+
+AT+BAC=1,2                ----->   (1=CVSD, 2=mSBC)
+
+                                <----- OK
+
+                                <----- AT+BCS=2   (AG selects codec)
+
+AT+BCS=2 (confirm)        ----->
+
+                                <----- OK
+```
+
+---
+
+## Result
+
+```
+Codec Selected = mSBC (Wideband)
+```
+
+---
+
+## Important
+
+- Codec MUST be selected before SCO setup
+- If negotiation fails → fallback to CVSD
+
+---
+
+# 🔔 3. In-Band Ringtone
+
+## What is it?
+
+👉 Ringtone comes from **phone over SCO audio**, not generated locally by IVI
+
+---
+
+## Flow
+
+```
+Incoming Call:
+
+PHONE → IVI:
+RING
++CIEV: callsetup=1
+
+AG decides:
+→ Use In-Band Ring
+
+SCO connection is created EARLY
+
+Audio Path:
+Phone ringtone → SCO → IVI speaker
+```
+
+---
+
+## Key Difference
+
+| Mode | Ringtone Source |
+|------|----------------|
+| In-band | Phone |
+| Out-of-band | IVI |
+
+---
+
+# ⚠️ 4. Role Switch (Critical Topic)
+
+## Default
+
+- Phone = Master
+- IVI = Slave
+
+---
+
+## Why Role Switch?
+
+IVI may want to become **Master** for:
+- Better scheduling
+- Audio stability
+- Power management
+
+---
+
+## HCI Flow
+
+```
+HCI_Switch_Role ----->
+
+<----- HCI_Role_Change
+```
+
+---
+
+# ⚠️ 5. Complexity with SCO + Role Switch
+
+👉 THIS is where real issues happen
+
+---
+
+## Problem 1: SCO Timing Sensitivity
+
+- SCO uses **fixed time slots**
+- Role switch disturbs:
+  - Slot timing
+  - Scheduling
+
+👉 Result:
+```
+Audio glitch / drop
+```
+
+---
+
+## Problem 2: Controller Limitations
+
+Some controllers:
+- ❌ Do not support role switch during SCO
+- ❌ Drop SCO link
+
+---
+
+## Problem 3: Race Conditions
+
+```
+Incoming call → SCO setup
+At same time → Role switch triggered
+```
+
+👉 Leads to:
+- Connection failure
+- No audio
+- One-way audio
+
+---
+
+## Problem 4: In-Band Ringtone Impact
+
+Since SCO is created early:
+
+```
+Role switch during ringtone
+→ Audio path unstable
+→ Missing ringtone or distorted sound
+```
+
+---
+
+## Problem 5: Wideband Codec Sensitivity
+
+- mSBC requires strict timing
+- Role switch → packet loss → decoder issues
+
+---
+
+# 🚨 6. Real-World Issues Seen in IVI
+
+### Issue 1: No Audio After Call Connect
+- Cause: Role switch during SCO setup
+
+---
+
+### Issue 2: Ringtone Not Heard
+- Cause: In-band ringtone + failed SCO
+
+---
+
+### Issue 3: One-Way Audio
+- Cause:
+  - Role switch timing mismatch
+  - Codec mismatch after reconnection
+
+---
+
+### Issue 4: Audio Glitches
+- Cause:
+  - eSCO retransmission + role switch conflict
+
+---
+
+# ✅ 7. Best Practices (Industry)
+
+### ✔ Avoid Role Switch During SCO
+- Lock role before call
+
+---
+
+### ✔ Perform Role Switch Early
+- During ACL stage, NOT during call
+
+---
+
+### ✔ Retry SCO Setup
+- If failed due to role switch
+
+---
+
+### ✔ Handle Codec Fallback
+- mSBC → CVSD fallback logic
+
+---
+
+### ✔ Synchronize Call State
+- Avoid parallel procedures
+
+---
+
+# 🎯 Final Understanding
+
+```
+SLC → Codec Negotiation → SCO Setup → Audio Flow
+```
+
+- SLC = control ready
+- Codec negotiation = audio format decided
+- SCO = actual voice path
+- Role switch = risky during audio phase
+
+---
+
+# 🧠 Interview One-Liner
+
+> “SCO connection is created using HCI_Setup_Synchronous_Connection after codec negotiation via AT commands. In-band ringtone requires early SCO setup. Role switching during SCO is risky due to strict timing constraints and can cause audio glitches, call failures, or one-way audio, so it is typically avoided once audio setup begins.”
+
+---
