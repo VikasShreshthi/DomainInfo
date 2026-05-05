@@ -325,3 +325,188 @@ HCI_Connection_Complete
 
 HCI_Authentication_Complete
   Status != 0x00
+
+---
+
+# Bluetooth Device Inquiry and Pairing Flow (IVI ↔ Phone)
+
+## Scenario
+- IVI = Initiator
+- Phone = Responder
+- Phone is in Inquiry Scan (discoverable) and Page Scan (connectable)
+
+---
+
+# 🔍 1. Device Discovery (Inquiry Phase)
+
+## HCI Flow
+
+```
+IVI (Initiator)                          PHONE (Responder)
+--------------------------------------------------------------
+
+HCI_Inquiry  --------->
+
+                (Phone in Inquiry Scan)
+
+                <---------  FHS Packet (over air)
+
+<--------- HCI_Inquiry_Result
+            (BD_ADDR, Class_of_Device, Clock_Offset)
+
+<--------- HCI_Inquiry_Complete
+```
+
+---
+
+## Key Notes
+
+- Inquiry uses **GIAC (General Inquiry Access Code)**
+- Phone responds with **FHS packet (NOT ID packet)**
+- IVI learns:
+  - BD_ADDR
+  - Device Class
+  - Clock Offset (used for faster paging)
+
+---
+
+# 👆 2. User Selects Device
+
+```
+User selects phone from IVI UI
+→ BD_ADDR is now used for connection
+```
+
+---
+
+# 🔗 3. Connection Establishment (Paging)
+
+```
+IVI                                      PHONE
+-----------------------------------------------
+
+HCI_Create_Connection  ----->
+
+                        <-----  HCI_Connection_Request
+
+HCI_Accept_Connection_Request ----->
+
+                        <-----  HCI_Connection_Complete
+
+<----- HCI_Connection_Complete
+```
+
+---
+
+# 🔐 4. Pairing Phase (Secure Simple Pairing)
+
+## Step 1: Check for existing key
+
+```
+IVI                                      PHONE
+-----------------------------------------------
+
+<----- HCI_Link_Key_Request
+
+-----> HCI_Link_Key_Request_Negative_Reply
+        (if first-time pairing)
+```
+
+---
+
+## Step 2: IO Capability Exchange
+
+```
+IVI                                      PHONE
+-----------------------------------------------
+
+<----- HCI_IO_Capability_Request
+
+-----> HCI_IO_Capability_Response
+        (DisplayYesNo / NoInputNoOutput / etc)
+```
+
+---
+
+## Step 3: User Confirmation
+
+```
+IVI                                      PHONE
+-----------------------------------------------
+
+<----- HCI_User_Confirmation_Request
+        (6-digit number)
+
+-----> HCI_User_Confirmation_Request_Reply
+```
+
+---
+
+## Step 4: Link Key Generation
+
+```
+IVI                                      PHONE
+-----------------------------------------------
+
+<----- HCI_Link_Key_Notification
+        (Link Key generated and stored)
+```
+
+---
+
+# 🔒 5. Enable Encryption
+
+```
+IVI                                      PHONE
+-----------------------------------------------
+
+HCI_Set_Connection_Encryption ----->
+
+<----- HCI_Encryption_Change
+```
+
+---
+
+# ✅ Final State
+
+```
+✔ Devices Paired (Bonded)
+✔ Link Key Stored
+✔ Encryption Enabled
+✔ Ready for Profiles (A2DP, HFP, PBAP, etc.)
+```
+
+---
+
+# ❗ Failure Cases
+
+## Inquiry Failure
+```
+HCI_Inquiry_Complete
+Status != Success
+```
+
+## Pairing Failure
+```
+HCI_Authentication_Complete
+Status != Success
+```
+
+## Connection Failure
+```
+HCI_Connection_Complete
+Status = Page Timeout
+```
+
+---
+
+# 🧠 Important Interview Points
+
+- Inquiry = Discovery (no connection)
+- Paging = Connection establishment
+- Pairing happens **after ACL link is created**
+- FHS packet is used in inquiry response
+- Encryption is **disabled initially**, enabled after pairing
+- Inquiry Scan ≠ Page Scan (both required for full functionality)
+
+---
