@@ -136,6 +136,49 @@ IVI = Initiator (Master)
 Phone = Acceptor (Slave)
 Device was discovered earlier via Inquiry (BD_ADDR known)
 
+sequenceDiagram
+    participant IVI
+    participant IVI_CTRL
+    participant PHONE_CTRL
+    participant PHONE
+
+    Note over IVI,PHONE: ACL Connection Establishment
+
+    IVI->>IVI_CTRL: HCI_Create_Connection
+    IVI_CTRL-->>IVI: HCI_Command_Status
+
+    Note over IVI_CTRL,PHONE_CTRL: Paging Procedure
+
+    IVI_CTRL->>PHONE_CTRL: Page ID Packets
+
+    PHONE_CTRL-->>PHONE: HCI_Connection_Request
+    PHONE->>PHONE_CTRL: HCI_Accept_Connection_Request
+
+    IVI_CTRL-->>IVI: HCI_Connection_Complete
+    PHONE_CTRL-->>PHONE: HCI_Connection_Complete
+
+    Note over IVI,PHONE: Authentication
+
+    IVI_CTRL-->>IVI: HCI_Link_Key_Request
+    IVI->>IVI_CTRL: Link_Key_Reply or Negative
+
+    Note over IVI,PHONE: Pairing if needed
+
+    IVI_CTRL-->>IVI: HCI_IO_Capability_Request
+    IVI->>IVI_CTRL: HCI_IO_Capability_Response
+
+    IVI_CTRL-->>IVI: HCI_User_Confirmation_Request
+    IVI->>IVI_CTRL: User_Confirmation_Reply
+
+    IVI_CTRL-->>IVI: HCI_Link_Key_Notification
+
+    Note over IVI,PHONE: Encryption
+
+    IVI->>IVI_CTRL: HCI_Set_Connection_Encryption
+    IVI_CTRL-->>IVI: HCI_Encryption_Change
+
+    Note over IVI,PHONE: ACL Ready for L2CAP
+
 Host → Controller (IVI)
 HCI_Create_Connection
   BD_ADDR = <Phone_BD_ADDR>
