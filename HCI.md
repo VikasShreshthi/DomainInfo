@@ -136,48 +136,100 @@ IVI = Initiator (Master)
 Phone = Acceptor (Slave)
 Device was discovered earlier via Inquiry (BD_ADDR known)
 
-sequenceDiagram
-    participant IVI
-    participant IVI_CTRL
-    participant PHONE_CTRL
-    participant PHONE
+# ACL Connection Flow (IVI ↔ Phone)
 
-    Note over IVI,PHONE: ACL Connection Establishment
+## Scenario
+- IVI = Initiator (Master)
+- Phone = Acceptor (Slave)
 
-    IVI->>IVI_CTRL: HCI_Create_Connection
-    IVI_CTRL-->>IVI: HCI_Command_Status
+---
 
-    Note over IVI_CTRL,PHONE_CTRL: Paging Procedure
+## Connection Establishment
 
-    IVI_CTRL->>PHONE_CTRL: Page ID Packets
+```
+IVI (Initiator)                          PHONE (Acceptor)
+--------------------------------------------------------------
 
-    PHONE_CTRL-->>PHONE: HCI_Connection_Request
-    PHONE->>PHONE_CTRL: HCI_Accept_Connection_Request
+HCI_Create_Connection  ----->
 
-    IVI_CTRL-->>IVI: HCI_Connection_Complete
-    PHONE_CTRL-->>PHONE: HCI_Connection_Complete
+                        <-----  HCI_Connection_Request
 
-    Note over IVI,PHONE: Authentication
+HCI_Accept_Connection_Request ----->
 
-    IVI_CTRL-->>IVI: HCI_Link_Key_Request
-    IVI->>IVI_CTRL: Link_Key_Reply or Negative
+                        <-----  HCI_Connection_Complete
 
-    Note over IVI,PHONE: Pairing if needed
+<----- HCI_Connection_Complete
+```
 
-    IVI_CTRL-->>IVI: HCI_IO_Capability_Request
-    IVI->>IVI_CTRL: HCI_IO_Capability_Response
+---
 
-    IVI_CTRL-->>IVI: HCI_User_Confirmation_Request
-    IVI->>IVI_CTRL: User_Confirmation_Reply
+## Authentication Phase
 
-    IVI_CTRL-->>IVI: HCI_Link_Key_Notification
+```
+IVI                                      PHONE
+-----------------------------------------------
 
-    Note over IVI,PHONE: Encryption
+<----- HCI_Link_Key_Request
 
-    IVI->>IVI_CTRL: HCI_Set_Connection_Encryption
-    IVI_CTRL-->>IVI: HCI_Encryption_Change
+-----> Link_Key_Request_Reply
+        OR
+-----> Link_Key_Request_Negative_Reply
+```
 
-    Note over IVI,PHONE: ACL Ready for L2CAP
+---
+
+## Pairing Phase (if no link key)
+
+```
+IVI                                      PHONE
+-----------------------------------------------
+
+<----- HCI_IO_Capability_Request
+
+-----> HCI_IO_Capability_Response
+
+<----- HCI_User_Confirmation_Request
+
+-----> HCI_User_Confirmation_Request_Reply
+
+<----- HCI_Link_Key_Notification
+```
+
+---
+
+## Encryption Phase
+
+```
+IVI                                      PHONE
+-----------------------------------------------
+
+HCI_Set_Connection_Encryption ----->
+
+<----- HCI_Encryption_Change
+```
+
+---
+
+## Final State
+
+```
+ACL Link Established
+Encryption Enabled
+Ready for L2CAP (A2DP, HFP, PBAP, etc.)
+```
+
+---
+
+## Failure Case Example
+
+```
+HCI_Connection_Complete
+Status = Page Timeout
+```
+
+Cause:
+- Phone not in Page Scan
+- Device out of range
 
 Host → Controller (IVI)
 HCI_Create_Connection
