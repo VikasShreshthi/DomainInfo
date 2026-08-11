@@ -1004,3 +1004,53 @@ SLC → Codec Negotiation → SCO Setup → Audio Flow
 > “SCO connection is created using HCI_Setup_Synchronous_Connection after codec negotiation via AT commands. In-band ringtone requires early SCO setup. Role switching during SCO is risky due to strict timing constraints and can cause audio glitches, call failures, or one-way audio, so it is typically avoided once audio setup begins.”
 
 ---
+
+
+             DISCOVERY
+                 │
+                 ↓
+             Inquiry
+                 │
+                 ↓
+          HU discovered
+                 │
+                 ↓
+          User selects HU
+                 │
+                 ↓
+          HCI_Create_Connection
+                 │
+                 ↓
+               PAGE
+                 │
+                 ↓
+          ACL established
+                 │
+                 ↓
+         Connection Complete
+                 │
+                 ↓
+          Link Management
+                 │
+          ┌──────┴───────┐
+          ↓              ↓
+     First pairing    Already bonded
+          ↓              ↓
+        SSP          Stored Link Key
+          ↓              ↓
+      Link Key       Authentication
+          ↓              ↓
+       Bonding           │
+          └──────┬───────┘
+                 ↓
+          Authentication
+                 ↓
+             Encryption
+                 ↓
+                SDP
+                 ↓
+        Profile connection
+                 ↓
+       ┌─────────┼─────────┐
+       ↓         ↓         ↓
+      HFP       PBAP      A2DP
